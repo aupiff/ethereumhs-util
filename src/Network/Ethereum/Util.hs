@@ -34,9 +34,31 @@ maybeToEither :: b -> Maybe a -> Either b a
 maybeToEither msg (Just a) = Right a
 maybeToEither msg Nothing = Left msg
 
-ecrecover :: a -> b -> Either String PubKey
-ecrecover _ _ = do compactRecSig <- maybeToEither "decompose sig error" $ decomposeSig sigT
-                   recSig <- maybeToEither "importCompactRecSig error" $ importCompactRecSig compactRecSig
-                   m <- maybeToEither "msg error" $ msg . bytesDecode $ "8db36fe7023731c87ba645cab36ea211f224fe1dc38f27d0708c5d6218f3a492"
-                   maybeToEither "recover error" $ traceShow (recSig, m) $ recover recSig m
+ecrecover :: Text -> Text -> Either String (PubKey, Text, Text, Text, Text)
+ecrecover sig message = do
+    compactRecSig <- maybeToEither "decompose sig error" $ decomposeSig sig
+    recSig <- maybeToEither "importCompactRecSig error" $ importCompactRecSig compactRecSig
+    m <- maybeToEither "msg error" $ msg . bytesDecode $ hashPersonalMessage message
+    pubkey <- maybeToEither "recover error" $ traceShow (recSig, m) $ recover recSig m
+    -- hash pubkey
+    let keyHash = T.pack $ show (hash (exportPubKey False pubkey) :: Digest Keccak_256)
+    let keyHash2 = T.pack $ show (hash (exportPubKey True pubkey) :: Digest Keccak_256)
+    -- take last 160 bits of pubkey
+    let ethAddr = T.drop 24 keyHash
+    let ethAddr2 = T.drop 24 keyHash2
+    return (pubkey, keyHash, ethAddr, keyHash2, ethAddr2)
+
+
+hashPersonalMessage :: Text -> Text
+hashPersonalMessage msg = T.pack . show $ (hash (T.encodeUtf8 $ T.append prefix msg) :: Digest Keccak_256)
+    where prefix = "\EMEthereum Signed Message:\n32"
+
+
+-- exports.hashPersonalMessage = function (message) {
+--   const prefix = exports.toBuffer('\u0019Ethereum Signed Message:\n' + message.length.toString())
+--   return exports.sha3(Buffer.concat([prefix, message]))
+-- }
+
+test = ecrecover sigT messageT
     where sigT = "819df6d812858e093b28f001e5d85527cf72dcc2c5ba478bb78ca73ef96449f92f0865223bb54e0b8d7fdcccc0e4cc9bb63cb65259502d7f6c6fbcfb82cb485b1c"
+          messageT = "8db36fe7023731c87ba645cab36ea211f224fe1dc38f27d0708c5d6218f3a492"
