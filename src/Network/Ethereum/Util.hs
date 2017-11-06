@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TupleSections #-}
 
 module Network.Ethereum.Util where
 
@@ -20,22 +19,24 @@ bytesDecode :: Text -> B.ByteString
 bytesDecode = fst . BS16.decode . T.encodeUtf8
 
 
-decomposeSig :: Text -> Maybe (ShortByteString, ShortByteString, Word8)
-decomposeSig sig = (sigR, sigS,) <$> sigV
-    where strippedSig = T.drop 2 sig
-          sigR = toShort . bytesDecode $ T.take 64 strippedSig
-          sigS = toShort . bytesDecode . T.take 64 . T.drop 64 $ strippedSig
-          sigV = fmap (\x -> x - 27) $ listToMaybe . B.unpack . bytesDecode . T.take 2 . T.drop 128 $ strippedSig
+decomposeSig :: Text -> Maybe CompactRecSig
+decomposeSig sig
+        | T.length sig /= 130 = Nothing
+        | otherwise = CompactRecSig sigS sigR <$> sigV -- why are these switched?
+    where sigR = toShort . (\x -> traceShow (BS16.encode x) x) . bytesDecode $ T.take 64 sig
+          sigS = toShort . (\x -> traceShow (BS16.encode x) x) . bytesDecode . T.take 64 . T.drop 64 $ sig
+          sigV = fmap adjustV . listToMaybe . B.unpack . bytesDecode . T.take 2 . T.drop 128 $ sig
+          adjustV x | x < 27    = x
+                    | otherwise = x - 27
 
-
+-- TODO find a library that implements this
 maybeToEither :: b -> Maybe a -> Either b a
 maybeToEither msg (Just a) = Right a
 maybeToEither msg Nothing = Left msg
 
 ecrecover :: a -> b -> Either String PubKey
-ecrecover _ _ = do (sigR, sigS, sigV) <- maybeToEither "decompose sig error" $ decomposeSig sigT
-                   let compactRecSig = CompactRecSig sigR sigS sigV
+ecrecover _ _ = do compactRecSig <- maybeToEither "decompose sig error" $ decomposeSig sigT
                    recSig <- maybeToEither "importCompactRecSig error" $ importCompactRecSig compactRecSig
                    m <- maybeToEither "msg error" $ msg . bytesDecode $ "8db36fe7023731c87ba645cab36ea211f224fe1dc38f27d0708c5d6218f3a492"
-                   maybeToEither "recover error" $ recover recSig m
-    where sigT = "0x819df6d812858e093b28f001e5d85527cf72dcc2c5ba478bb78ca73ef96449f92f0865223bb54e0b8d7fdcccc0e4cc9bb63cb65259502d7f6c6fbcfb82cb485b1c"
+                   maybeToEither "recover error" $ traceShow (recSig, m) $ recover recSig m
+    where sigT = "819df6d812858e093b28f001e5d85527cf72dcc2c5ba478bb78ca73ef96449f92f0865223bb54e0b8d7fdcccc0e4cc9bb63cb65259502d7f6c6fbcfb82cb485b1c"
