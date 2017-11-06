@@ -37,5 +37,5 @@ ecrecover _ _ = do (sigR, sigS, sigV) <- maybeToEither "decompose sig error" $ d
                    let compactRecSig = CompactRecSig sigR sigS sigV
                    recSig <- maybeToEither "importCompactRecSig error" $ importCompactRecSig compactRecSig
                    m <- maybeToEither "msg error" $ msg . bytesDecode $ "8db36fe7023731c87ba645cab36ea211f224fe1dc38f27d0708c5d6218f3a492"
-                   maybeToEither "recover error" $ recover recSig m
+                   maybeToEither "recover error" recover recSig m
     where sigT = "0x819df6d812858e093b28f001e5d85527cf72dcc2c5ba478bb78ca73ef96449f92f0865223bb54e0b8d7fdcccc0e4cc9bb63cb65259502d7f6c6fbcfb82cb485b1c"
