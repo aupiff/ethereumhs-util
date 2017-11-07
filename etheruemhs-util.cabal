@@ -20,6 +20,7 @@ library
                      , bytestring
                      , base16-bytestring
                      , cryptonite
+                     , MissingH
                      , secp256k1
                      , text
                      , word8
