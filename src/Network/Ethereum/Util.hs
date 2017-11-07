@@ -73,7 +73,6 @@ hashPersonalMessage message = T.pack . show $ keccakDigest
           keccakDigest :: Digest Keccak_256
           keccakDigest = hash (prefix `B.append` messageBytes)
 
-test = ecrecover sigT $ hashPersonalMessage messageT
+test = ecrecover sigT $ hashPersonalMessage message
     where sigT = "819df6d812858e093b28f001e5d85527cf72dcc2c5ba478bb78ca73ef96449f92f0865223bb54e0b8d7fdcccc0e4cc9bb63cb65259502d7f6c6fbcfb82cb485b1c"
-          messageT = "8db36fe7023731c87ba645cab36ea211f224fe1dc38f27d0708c5d6218f3a492"
-          -- pmessageT = "49de9e6a08cc856ae51c8b78358756379f75079edcbca21133c32d88d4075d4f"
+          message = "8db36fe7023731c87ba645cab36ea211f224fe1dc38f27d0708c5d6218f3a492"
