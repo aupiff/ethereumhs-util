@@ -15,6 +15,7 @@ import           Data.Word8
 
 import           Debug.Trace
 
+-- TODO make this function safe; decode can fail silently and that's no good
 bytesDecode :: Text -> B.ByteString
 bytesDecode = fst . BS16.decode . T.encodeUtf8
 
@@ -22,7 +23,7 @@ bytesDecode = fst . BS16.decode . T.encodeUtf8
 decomposeSig :: Text -> Maybe CompactRecSig
 decomposeSig sig
         | T.length sig /= 130 = Nothing
-        | otherwise = CompactRecSig sigS sigR <$> sigV -- why are these switched?
+        | otherwise = traceShow sig $ CompactRecSig sigS sigR <$> sigV -- TODO why are r & s switched?
     where sigR = toShort . (\x -> traceShow (BS16.encode x) x) . bytesDecode $ T.take 64 sig
           sigS = toShort . (\x -> traceShow (BS16.encode x) x) . bytesDecode . T.take 64 . T.drop 64 $ sig
           sigV = fmap adjustV . listToMaybe . B.unpack . bytesDecode . T.take 2 . T.drop 128 $ sig
@@ -50,8 +51,12 @@ ecrecover sig message = do
 
 
 hashPersonalMessage :: Text -> Text
-hashPersonalMessage msg = T.pack . show $ (hash (T.encodeUtf8 $ T.append prefix msg) :: Digest Keccak_256)
-    where prefix = "\EMEthereum Signed Message:\n32"
+hashPersonalMessage m = T.pack . show $ (hash concatenatedString :: Digest Keccak_256)
+    where messageBytes = bytesDecode m
+          prefixString = "\EMEthereum Signed Message:\n" ++ (show $ B.length messageBytes)
+          -- TODO figure this out and simplify if possible...
+          prefix = bytesDecode . T.decodeUtf8 . BS16.encode . T.encodeUtf8 . T.pack $ prefixString
+          concatenatedString = prefix `B.append` messageBytes
 
 
 -- exports.hashPersonalMessage = function (message) {
@@ -62,3 +67,4 @@ hashPersonalMessage msg = T.pack . show $ (hash (T.encodeUtf8 $ T.append prefix 
 test = ecrecover sigT messageT
     where sigT = "819df6d812858e093b28f001e5d85527cf72dcc2c5ba478bb78ca73ef96449f92f0865223bb54e0b8d7fdcccc0e4cc9bb63cb65259502d7f6c6fbcfb82cb485b1c"
           messageT = "8db36fe7023731c87ba645cab36ea211f224fe1dc38f27d0708c5d6218f3a492"
+          pmessageT = "49de9e6a08cc856ae51c8b78358756379f75079edcbca21133c32d88d4075d4f"
