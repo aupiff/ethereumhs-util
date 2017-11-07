@@ -39,7 +39,7 @@ ecrecover :: Text -> Text -> Either String (PubKey, Text, Text, Text, Text)
 ecrecover sig message = do
     compactRecSig <- maybeToEither "decompose sig error" $ decomposeSig sig
     recSig <- maybeToEither "importCompactRecSig error" $ importCompactRecSig compactRecSig
-    m <- maybeToEither "msg error" $ msg . bytesDecode $ hashPersonalMessage message
+    m <- maybeToEither "msg error" . msg . bytesDecode $ message
     pubkey <- maybeToEither "recover error" $ traceShow (recSig, m) $ recover recSig m
     -- hash pubkey
     let keyHash = T.pack $ show (hash (exportPubKey False pubkey) :: Digest Keccak_256)
@@ -54,17 +54,11 @@ hashPersonalMessage :: Text -> Text
 hashPersonalMessage m = T.pack . show $ (hash concatenatedString :: Digest Keccak_256)
     where messageBytes = bytesDecode m
           prefixString = "\EMEthereum Signed Message:\n" ++ (show $ B.length messageBytes)
-          -- TODO figure this out and simplify if possible...
-          prefix = bytesDecode . T.decodeUtf8 . BS16.encode . T.encodeUtf8 . T.pack $ prefixString
+          prefix = T.encodeUtf8 . T.pack $ prefixString
           concatenatedString = prefix `B.append` messageBytes
 
 
--- exports.hashPersonalMessage = function (message) {
---   const prefix = exports.toBuffer('\u0019Ethereum Signed Message:\n' + message.length.toString())
---   return exports.sha3(Buffer.concat([prefix, message]))
--- }
-
-test = ecrecover sigT messageT
+test = ecrecover sigT $ hashPersonalMessage messageT
     where sigT = "819df6d812858e093b28f001e5d85527cf72dcc2c5ba478bb78ca73ef96449f92f0865223bb54e0b8d7fdcccc0e4cc9bb63cb65259502d7f6c6fbcfb82cb485b1c"
           messageT = "8db36fe7023731c87ba645cab36ea211f224fe1dc38f27d0708c5d6218f3a492"
           pmessageT = "49de9e6a08cc856ae51c8b78358756379f75079edcbca21133c32d88d4075d4f"
