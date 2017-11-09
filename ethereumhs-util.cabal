@@ -1,13 +1,13 @@
-name:                etheruemhs-util
+name:                ethereumhs-util
 version:             0.1.0.0
 -- synopsis:
 -- description:
-homepage:            https://github.com/githubuser/etheruemhs-util#readme
+homepage:            https://github.com/aupiff/ethereumhs-util#readme
 license:             BSD3
 license-file:        LICENSE
-author:              Author name here
-maintainer:          example@example.com
-copyright:           2017 Author name here
+author:              Roy Blankman
+maintainer:          riblankman@gmail.com
+copyright:           2017 Roy Blankman
 category:            Web
 build-type:          Simple
 extra-source-files:  README.md
@@ -26,12 +26,12 @@ library
                      , word8
   default-language:    Haskell2010
 
-test-suite etheruemhs-util-test
+test-suite ethereumhs-util-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
   build-depends:       base
-                     , etheruemhs-util
+                     , ethereumhs-util
                      , base16-bytestring
                      , bytestring
                      , cereal
@@ -49,4 +49,4 @@ test-suite etheruemhs-util-test
 
 source-repository head
   type:     git
-  location: https://github.com/githubuser/etheruemhs-util
+  location: https://github.com/aupiff/ethereumhs-util
