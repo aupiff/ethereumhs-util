@@ -20,7 +20,7 @@ import           Debug.Trace
 bytesDecode :: Text -> B.ByteString
 bytesDecode = fst . BS16.decode . T.encodeUtf8
 
-
+-- toRpcSig
 decomposeSig :: Text -> Maybe CompactRecSig
 decomposeSig sig
         | T.length sig /= 130 = Nothing
@@ -31,23 +31,44 @@ decomposeSig sig
           adjustV x | x < 27    = x
                     | otherwise = x - 27
 
-ecrecover :: Text -> Text -> Either String (PubKey, Text, Text, Text, Text, Text)
+ecrecover :: Text -> Text -> Either String Text
 ecrecover sig message = do
     compactRecSig <- maybeToEither "decompose sig error" $ decomposeSig sig
     recSig <- maybeToEither "importCompactRecSig error" $ importCompactRecSig compactRecSig
     m <- maybeToEither "msg error" . msg . bytesDecode $ message
-    pubkey <- maybeToEither "recover error" $ traceShow (recSig, m) $ recover recSig m
+    pubkey <- maybeToEither "recover error" $ recover recSig m
     -- hash pubkey
-    let keyHash = T.pack $ show (hash (exportPubKey False pubkey) :: Digest Keccak_256)
-    let keyHash2 = T.pack $ show (hash (exportPubKey True pubkey) :: Digest Keccak_256)
+    let keyHash = T.pack $ show (hash (B.drop 1 $ exportPubKey False pubkey) :: Digest Keccak_256)
     -- take last 160 bits of pubkey
     let ethAddr = T.drop 24 keyHash
-    let ethAddr2 = T.drop 24 keyHash2
-    return (pubkey, T.decodeUtf8 . BS16.encode $ exportPubKey False pubkey, keyHash, ethAddr, keyHash2, ethAddr2)
+    return $ ethAddr
 
--- pubToAddress
+
+-- importPublic :: B.ByteString -> B.ByteString
+-- importPublic key
+--     | B.length key == 64 = key
+--     | otherwise
+
+
+publicToAddress :: Text -> Text
+publicToAddress key = T.drop 24 keyHash
+    where keyHash = T.pack $ show (hash (T.encodeUtf8 key) :: Digest Keccak_256)
+
 {-
-    -
+/**
+ * Converts a public key to the Ethereum format.
+ * @param {Buffer} publicKey
+ * @return {Buffer}
+ */
+exports.importPublic = function (publicKey) {
+  publicKey = exports.toBuffer(publicKey)
+  if (publicKey.length !== 64) {
+    publicKey = secp256k1.publicKeyConvert(publicKey, false).slice(1)
+  }
+  return publicKey
+}
+
+
 /**
  * Returns the ethereum address of a given public key.
  * Accepts "Ethereum public keys" and SEC1 encoded keys.
@@ -64,6 +85,7 @@ exports.pubToAddress = exports.publicToAddress = function (pubKey, sanitize) {
   // Only take the lower 160bits of the hash
   return exports.sha3(pubKey).slice(-20)
 }
+
 -}
 
 hashPersonalMessage :: Text -> Text
@@ -72,7 +94,3 @@ hashPersonalMessage message = T.pack . show $ keccakDigest
           prefix = T.encodeUtf8 . T.pack $ "\EMEthereum Signed Message:\n" ++ (show $ B.length messageBytes)
           keccakDigest :: Digest Keccak_256
           keccakDigest = hash (prefix `B.append` messageBytes)
-
-test = ecrecover sigT $ hashPersonalMessage message
-    where sigT = "819df6d812858e093b28f001e5d85527cf72dcc2c5ba478bb78ca73ef96449f92f0865223bb54e0b8d7fdcccc0e4cc9bb63cb65259502d7f6c6fbcfb82cb485b1c"
-          message = "8db36fe7023731c87ba645cab36ea211f224fe1dc38f27d0708c5d6218f3a492"
