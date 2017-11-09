@@ -20,6 +20,7 @@ import           Debug.Trace
 bytesDecode :: Text -> B.ByteString
 bytesDecode = fst . BS16.decode . T.encodeUtf8
 
+
 -- toRpcSig
 decomposeSig :: Text -> Maybe CompactRecSig
 decomposeSig sig
@@ -38,55 +39,14 @@ ecrecover sig message = do
     m <- maybeToEither "msg error" . msg . bytesDecode $ message
     pubkey <- maybeToEither "recover error" $ recover recSig m
     -- hash pubkey
-    let keyHash = T.pack $ show (hash (B.drop 1 $ exportPubKey False pubkey) :: Digest Keccak_256)
-    -- take last 160 bits of pubkey
-    let ethAddr = T.drop 24 keyHash
-    return $ ethAddr
-
-
--- importPublic :: B.ByteString -> B.ByteString
--- importPublic key
---     | B.length key == 64 = key
---     | otherwise
+    let pubKey = T.decodeUtf8 . BS16.encode . B.drop 1 $ exportPubKey False pubkey
+    return $ publicToAddress pubKey
 
 
 publicToAddress :: Text -> Text
 publicToAddress key = T.drop 24 keyHash
-    where keyHash = T.pack $ show (hash (T.encodeUtf8 key) :: Digest Keccak_256)
+    where keyHash = T.pack $ show (hash (bytesDecode key) :: Digest Keccak_256)
 
-{-
-/**
- * Converts a public key to the Ethereum format.
- * @param {Buffer} publicKey
- * @return {Buffer}
- */
-exports.importPublic = function (publicKey) {
-  publicKey = exports.toBuffer(publicKey)
-  if (publicKey.length !== 64) {
-    publicKey = secp256k1.publicKeyConvert(publicKey, false).slice(1)
-  }
-  return publicKey
-}
-
-
-/**
- * Returns the ethereum address of a given public key.
- * Accepts "Ethereum public keys" and SEC1 encoded keys.
- * @param {Buffer} pubKey The two points of an uncompressed key, unless sanitize is enabled
- * @param {Boolean} [sanitize=false] Accept public keys in other formats
- * @return {Buffer}
- */
-exports.pubToAddress = exports.publicToAddress = function (pubKey, sanitize) {
-  pubKey = exports.toBuffer(pubKey)
-  if (sanitize && (pubKey.length !== 64)) {
-    pubKey = secp256k1.publicKeyConvert(pubKey, false).slice(1)
-  }
-  assert(pubKey.length === 64)
-  // Only take the lower 160bits of the hash
-  return exports.sha3(pubKey).slice(-20)
-}
-
--}
 
 hashPersonalMessage :: Text -> Text
 hashPersonalMessage message = T.pack . show $ keccakDigest

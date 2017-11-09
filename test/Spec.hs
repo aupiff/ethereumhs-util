@@ -12,6 +12,7 @@ import           Test.QuickCheck                      (Property, (==>))
 main :: IO ()
 main = defaultMain $ tests
 
+
 tests :: [Test]
 tests =
     [ testGroup "hashPersonalMessage"
@@ -27,6 +28,7 @@ tests =
         [ testCase "Signing message" ecrecoverTest
         ]
     ]
+
 
 hashPersonalMessageTest :: Assertion
 hashPersonalMessageTest =
