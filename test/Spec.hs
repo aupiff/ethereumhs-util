@@ -19,13 +19,14 @@ tests =
         [ testCase "Hashing personal message" hashPersonalMessageTest
         ]
     , testGroup "publicToAddress"
-        [ testCase "extracting address from public key" publicToAddressTest
+        [ testCase "Extracting address from public key" publicToAddressTest
         ]
     , testGroup "ecsign"
-        [ testCase "Signing message" ecsignTest
+        [ testCase "Signing message hashed with Ethereum prefix" ecsignTest
+        , testCase "Signing 2nd message" ecsignTest2
         ]
     , testGroup "ecrecover"
-        [ testCase "Signing message" ecrecoverTest
+        [ testCase "Recovering signature" ecrecoverTest
         ]
     ]
 
@@ -54,8 +55,15 @@ publicToAddressTest = assertEqual "appropriate address is derived from public ke
           address = "2f015c60e0be116b1f0cd534704db9c92118fb6a"
 
 ecsignTest :: Assertion
-ecsignTest = assertEqual "msg is properly signed"
-                         (ecsign message signerPrivKey)
+ecsignTest = assertEqual "msg is properly signed after hashing"
+                         (ecsign (hashPersonalMessage message) signerPrivKey)
                          (Right "819df6d812858e093b28f001e5d85527cf72dcc2c5ba478bb78ca73ef96449f92f0865223bb54e0b8d7fdcccc0e4cc9bb63cb65259502d7f6c6fbcfb82cb485b1c")
     where message = "8db36fe7023731c87ba645cab36ea211f224fe1dc38f27d0708c5d6218f3a492"
           signerPrivKey = "024f55d169862624eec05be973a38f52ad252b3bcc0f0ed1927defa4ab4ea101"
+
+ecsignTest2 :: Assertion
+ecsignTest2 = assertEqual "msg is properly signed"
+                          (ecsign message signerPrivKey)
+                          (Right "99e71a99cb2270b8cac5254f9e99b6210c6c10224a1579cf389ef88b20a1abe9129ff05af364204442bdb53ab6f18a99ab48acc9326fa689f228040429e3ca661b")
+    where message = "82ff40c0a986c6a5cfad4ddf4c3aa6996f1a7837f9c398e17e5de5cbd5a12b28"
+          signerPrivKey = "3c9229289a6125f7fdf1885a77bb12c37a8d3b4962d936f7e3084dece32a3ca1"

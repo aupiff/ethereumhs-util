@@ -38,8 +38,12 @@ ecsign :: Text -> Text -> Either String Text
 ecsign msgHash privateKey = do
     msgHash' <- maybeToEither "msg error" . msg . bytesDecode $ msgHash
     privateKey' <- maybeToEither "privKey error" . secKey $ bytesDecode privateKey
-    return . T.pack . show $ signMsg privateKey' msgHash'
+    return . recSigToText $ signRecMsg privateKey' msgHash'
 
+-- TODO consider where the best place for adding 27 is
+recSigToText :: RecSig -> Text
+recSigToText recSig = T.decodeUtf8 . BS16.encode $ (fromShort sigS) `B.append` (fromShort sigR) `B.snoc` (sigV + 27)
+    where (CompactRecSig sigR sigS sigV) = exportCompactRecSig recSig
 
 ecrecover :: Text -> Text -> Either String Text
 ecrecover sig message = do
