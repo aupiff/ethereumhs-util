@@ -25,12 +25,21 @@ bytesDecode = fst . BS16.decode . T.encodeUtf8
 decomposeSig :: Text -> Maybe CompactRecSig
 decomposeSig sig
         | T.length sig /= 130 = Nothing
-        | otherwise = traceShow sig $ CompactRecSig sigS sigR <$> sigV -- TODO why are r & s switched?
-    where sigR = toShort . (\x -> traceShow (BS16.encode x) x) . bytesDecode $ T.take 64 sig
-          sigS = toShort . (\x -> traceShow (BS16.encode x) x) . bytesDecode . T.take 64 . T.drop 64 $ sig
-          sigV = fmap adjustV . listToMaybe . B.unpack . bytesDecode . T.take 2 . T.drop 128 $ sig
+        | otherwise = CompactRecSig sigS sigR <$> sigV -- TODO why are r & s switched?
+    where sigR = toShort . bytesDecode $ T.take 64 sig
+          sigS = toShort . bytesDecode . T.take 64 $ T.drop 64 sig
+          sigV = fmap adjustV . listToMaybe . B.unpack
+                              . bytesDecode . T.take 2 . T.drop 128 $ sig
           adjustV x | x < 27    = x
                     | otherwise = x - 27
+
+
+ecsign :: Text -> Text -> Either String Text
+ecsign msgHash privateKey = do
+    msgHash' <- maybeToEither "msg error" . msg . bytesDecode $ msgHash
+    privateKey' <- maybeToEither "privKey error" . secKey $ bytesDecode privateKey
+    return . T.pack . show $ signMsg privateKey' msgHash'
+
 
 ecrecover :: Text -> Text -> Either String Text
 ecrecover sig message = do
@@ -51,6 +60,7 @@ publicToAddress key = T.drop 24 keyHash
 hashPersonalMessage :: Text -> Text
 hashPersonalMessage message = T.pack . show $ keccakDigest
     where messageBytes = bytesDecode message
-          prefix = T.encodeUtf8 . T.pack $ "\EMEthereum Signed Message:\n" ++ (show $ B.length messageBytes)
+          prefix = T.encodeUtf8 . T.pack $
+            "\EMEthereum Signed Message:\n" ++ (show $ B.length messageBytes)
           keccakDigest :: Digest Keccak_256
           keccakDigest = hash (prefix `B.append` messageBytes)
