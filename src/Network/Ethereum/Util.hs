@@ -78,3 +78,9 @@ hashPersonalMessage message = T.pack . show $ keccakDigest
             "\EMEthereum Signed Message:\n" ++ show (B.length messageBytes)
           keccakDigest :: Digest Keccak_256
           keccakDigest = hash (prefix `B.append` messageBytes)
+
+
+hashText :: Text -> Text
+hashText message = T.pack . show $ keccakDigest
+    where keccakDigest :: Digest Keccak_256
+          keccakDigest = hash $ bytesDecode message

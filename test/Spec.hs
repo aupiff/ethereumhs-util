@@ -18,6 +18,9 @@ tests =
     [ testGroup "hashPersonalMessage"
         [ testCase "Hashing personal message" hashPersonalMessageTest
         ]
+    , testGroup "hashText"
+        [ testCase "hashing message" hashTest
+        ]
     , testGroup "publicToAddress"
         [ testCase "Extracting address from public key" publicToAddressTest
         ]
@@ -78,3 +81,8 @@ ecsignTest2 = assertEqual "msg is properly signed"
                           (Right "99e71a99cb2270b8cac5254f9e99b6210c6c10224a1579cf389ef88b20a1abe9129ff05af364204442bdb53ab6f18a99ab48acc9326fa689f228040429e3ca661b")
     where message = "82ff40c0a986c6a5cfad4ddf4c3aa6996f1a7837f9c398e17e5de5cbd5a12b28"
           signerPrivKey = "3c9229289a6125f7fdf1885a77bb12c37a8d3b4962d936f7e3084dece32a3ca1"
+
+hashTest :: Assertion
+hashTest = assertEqual "msg is properly hashed"
+                       (hashText "7624778dedc75f8b322b9fa1632a610d40b85e106c7d9bf0e743a9ce291b9c6f6a362e5cee1cf5a5408ff1e12b0bc546618dffcb11edd217a875063583dd1b638d16810c5d34d54b000000000000000000000000000000000000000000000000000000000000000a0000000000000000000000000000000000000000000000000000000000000000")
+                       "8db36fe7023731c87ba645cab36ea211f224fe1dc38f27d0708c5d6218f3a492"
