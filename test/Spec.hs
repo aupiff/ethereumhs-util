@@ -10,7 +10,7 @@ import           Test.HUnit                           (Assertion, assertEqual)
 import           Test.QuickCheck                      (Property, (==>))
 
 main :: IO ()
-main = defaultMain $ tests
+main = defaultMain tests
 
 
 tests :: [Test]
@@ -20,6 +20,9 @@ tests =
         ]
     , testGroup "publicToAddress"
         [ testCase "Extracting address from public key" publicToAddressTest
+        ]
+    , testGroup "privateToAddress"
+        [ testCase "Extracting address from public key" privateToAddressTest
         ]
     , testGroup "ecsign"
         [ testCase "Signing message hashed with Ethereum prefix" ecsignTest
@@ -53,6 +56,14 @@ publicToAddressTest = assertEqual "appropriate address is derived from public ke
                                   address
     where pubKey = "3a443d8381a6798a70c6ff9304bdc8cb0163c23211d11628fae52ef9e0dca11a001cf066d56a8156fc201cd5df8a36ef694eecd258903fca7086c1fae7441e1d"
           address = "2f015c60e0be116b1f0cd534704db9c92118fb6a"
+
+privateToAddressTest :: Assertion
+privateToAddressTest = assertEqual "appropriate address is derived from private key"
+                                  (privateToAddress privKey)
+                                  (Just address)
+    where privKey = "024f55d169862624eec05be973a38f52ad252b3bcc0f0ed1927defa4ab4ea100"
+          address = "11edd217a875063583dd1b638d16810c5d34d54b"
+
 
 ecsignTest :: Assertion
 ecsignTest = assertEqual "msg is properly signed after hashing"
